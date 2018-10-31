@@ -7,8 +7,8 @@ import java.util.*;
  */
 public class TupleIterator implements DbIterator {
     /**
-	 * 
-	 */
+     *
+     */
     private static final long serialVersionUID = 1L;
     Iterator<Tuple> i = null;
     TupleDesc td = null;
@@ -17,7 +17,7 @@ public class TupleIterator implements DbIterator {
     /**
      * Constructs an iterator from the specified Iterable, and the specified
      * descriptor.
-     * 
+     *
      * @param tuples
      *            The set of tuples to iterate over
      */
