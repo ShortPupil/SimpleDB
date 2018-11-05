@@ -23,7 +23,7 @@ public class HeapPageId implements PageId {
     /** @return the table associated with this PageId */
     public int getTableId() {
         // some code goes here
-        return pageNum;
+        return tableId;
     }
 
     /**
