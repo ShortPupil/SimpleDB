@@ -1,6 +1,8 @@
 package simpledb;
 
+import javax.xml.crypto.Data;
 import java.io.*;
+import java.util.HashMap;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -20,13 +22,20 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
-    /**
+    //页的最大数量
+    public int PAGES_NUM;
+
+    //当前缓存页
+    private HashMap<PageId, Page> pid2pages;
+    /*
      * Creates a BufferPool that caches up to numPages pages.
-     *
+     * 创建一个缓存多达numPages页面的BufferPool。
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
         // some code goes here
+        PAGES_NUM = numPages;
+        pid2pages = new HashMap<>(numPages);
     }
 
     /**
@@ -39,6 +48,15 @@ public class BufferPool {
      * be added to the buffer pool and returned.  If there is insufficient
      * space in the buffer pool, an page should be evicted and the new page
      * should be added in its place.
+     * 使用关联的权限检索指定的页面。
+     * 将获得一个锁定，并可能阻止该锁定被另一个锁定
+     * 交易。
+     * <p>
+     * 应在缓冲池中查找检索到的页面。如果它
+     * 存在，应退回。如果它不存在，它应该
+     * 被添加到缓冲池并返回。如果不够
+     * 缓冲池中的空间，应该逐出页面和新页面
+     * 应该在其位置添加。
      *
      * @param tid the ID of the transaction requesting the page
      * @param pid the ID of the requested page
@@ -47,7 +65,22 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        // 缓冲池直接检索到
+        if (pid2pages.containsKey(pid)){
+            return pid2pages.get(pid);
+        }
+        // 没有，被添加到缓冲池并返回
+        else {
+            HeapFile table = (HeapFile) Database.getCatalog().getDbFile(pid.getTableId());
+            HeapPage newPage = (HeapPage) table.readPage(pid);
+            pid2pages.put(pid, newPage);
+            //如果超出了最大的缓存页数量
+            if (pid2pages.size() > PAGES_NUM) {
+                // TODO: 17-5-26 implement this
+            }
+            return newPage;
+        }
+
     }
 
     /**

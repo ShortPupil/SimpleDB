@@ -66,7 +66,11 @@ public class HeapPage implements Page {
     */
     private int getNumTuples() {        
         // some code goes here
-        return 0;
+        if (numSlots != 0){
+            return numSlots;
+        }
+        int numTuples = (BufferPool.PAGE_SIZE * 8) / (td.getSize() * 8 + 1);
+        return numTuples;
 
     }
 
@@ -74,10 +78,10 @@ public class HeapPage implements Page {
      * Computes the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
-    private int getHeaderSize() {        
-        
+    private int getHeaderSize() {
         // some code goes here
-        return 0;
+        int headerSize = (int) Math.ceil(getNumTuples() / 8.0);
+        return headerSize;
                  
     }
     
@@ -103,7 +107,7 @@ public class HeapPage implements Page {
      */
     public HeapPageId getId() {
     // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        return pid;
     }
 
     /**
@@ -273,7 +277,11 @@ public class HeapPage implements Page {
      */
     public int getNumEmptySlots() {
         // some code goes here
-        return 0;
+        int emptySlots = 0;
+        for(int i = 0; i < getNumTuples() ; i++){
+            if(!isSlotUsed(i)) emptySlots++;
+        }
+        return emptySlots;
     }
 
     /**
@@ -281,7 +289,13 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return false;
+        //例如有18个slots，而且全是used的，那么header的二进制数据为[11111111, 11111111, 00000011]
+        //最后一个byte的前面六个0i并不对应slot
+
+        int byteNum = i / 8;//第几个字节
+        int posInByte = i % 8;//该字节的第几位
+        boolean res = (byte) (header[byteNum] << (7 - posInByte)) < 0; //target从右往左偏移量pos处的bit是否为1
+        return res;
     }
 
     /**
@@ -295,10 +309,43 @@ public class HeapPage implements Page {
     /**
      * @return an iterator over all tuples on this page (calling remove on this iterator throws an UnsupportedOperationException)
      * (note that this iterator shouldn't return tuples in empty slots!)
+     * @return此页面上所有元组的迭代器（在此迭代器上调用remove会抛出UnsupportedOperationException）
+     *（请注意，此迭代器不应在空插槽中返回元组！）
      */
     public Iterator<Tuple> iterator() {
         // some code goes here
-        return null;
+        return new UsedTupleIterator();
+    }
+
+    private class UsedTupleIterator implements Iterator<Tuple> {
+
+        /**
+         * 例子：header数组与遍历过程各个量的变化如下
+         * headers: [00101000]
+         * index:   [01234567]
+         * pos:     [00011222]
+         * pos在找到一个为1的bit之后才加一
+         */
+
+        private int pos = 0;
+        private int index = 0;//tuple数组的下标变化
+        private int usedTuplesNum = getNumTuples() - getNumEmptySlots();//已用的元组数量
+
+        @Override
+        public boolean hasNext() {
+            return index < getNumTuples() && pos < usedTuplesNum;
+        }
+
+        @Override
+        public Tuple next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            for (; !isSlotUsed(index); index++) {
+            }//直到找到在使用的(对应的slot非空的)tuple，再返回
+            pos++;
+            return tuples[index++];
+        }
     }
 
 }

@@ -11,6 +11,13 @@ public class SeqScan implements DbIterator {
 
     private static final long serialVersionUID = 1L;
 
+    private TransactionId tid;
+
+    private int tableid;
+
+    private String tableAlias;
+
+    private DbFileIterator tupleIterator;
     /**
      * Creates a sequential scan over the specified table as a part of the
      * specified transaction.
@@ -29,6 +36,10 @@ public class SeqScan implements DbIterator {
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
         // some code goes here
+        this.tid = tid;
+        this.tableid = tableid;
+        this.tableAlias = tableAlias;
+        this.tupleIterator= Database.getCatalog().getDbFile(tableid).iterator(tid);
     }
 
     /**
@@ -46,7 +57,7 @@ public class SeqScan implements DbIterator {
     public String getAlias()
     {
         // some code goes here
-        return null;
+        return tableAlias;
     }
 
     /**
@@ -63,6 +74,8 @@ public class SeqScan implements DbIterator {
      */
     public void reset(int tableid, String tableAlias) {
         // some code goes here
+        this.tableid = tableid;
+        this.tableAlias = tableAlias;
     }
 
     public SeqScan(TransactionId tid, int tableid) {
@@ -71,6 +84,7 @@ public class SeqScan implements DbIterator {
 
     public void open() throws DbException, TransactionAbortedException {
         // some code goes here
+        tupleIterator.open();
     }
 
     /**
@@ -80,30 +94,51 @@ public class SeqScan implements DbIterator {
      * name.
      * 
      * @return the TupleDesc with field names from the underlying HeapFile,
-     *         prefixed with the tableAlias string from the constructor.
-     */
+     *         prefixed with the tableAlias string from the constructor
+     *返回带有基础HeapFile的字段名称的TupleDesc，
+     *前缀为构造函数中的tableAlias字符串。 这个前缀
+     *在连接包含具有相同字段的表时变得有用
+     * 名称。
+     *
+     * @return TupleDesc，其中包含来自底层HeapFile的字段名称，
+     *前缀为构造函数中的tableAlias字符串。
+     *
+     * */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        TupleDesc desc = Database.getCatalog().getTupleDesc(tableid);
+        int fieldNum = desc.numFields();
+        Type [] types = new Type[fieldNum];
+        String [] names = new String[fieldNum];
+        for (int i = 0 ; i < fieldNum ; i++) {
+            types[i] = desc.getFieldType(i);
+            String prefix = getAlias() == null ? "null." : getAlias() + ".";
+            String fieldName = desc.getFieldName(i);
+            fieldName = fieldName == null ? "null" : fieldName;
+            names[i] = prefix + fieldName;
+        }
+        return new TupleDesc(types, names);
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
         // some code goes here
-        return false;
+        return tupleIterator.hasNext();
     }
 
     public Tuple next() throws NoSuchElementException,
             TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        return tupleIterator.next();
     }
 
     public void close() {
         // some code goes here
+        tupleIterator.close();
     }
 
     public void rewind() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         // some code goes here
+        tupleIterator.rewind();
     }
 }

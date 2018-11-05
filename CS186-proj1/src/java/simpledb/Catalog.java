@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.lang.IllegalArgumentException;
 
 /**
  * The Catalog keeps track of all available tables in the database and their
@@ -16,12 +17,24 @@ import java.util.*;
 
 public class Catalog {
 
+    //建立表id到表主键的映射
+    private HashMap<Integer, String> id2pkey;
+    //建立表id到表name的映射
+    private HashMap<Integer, String> id2name;
+    //建立表id到数据库文件的映射
+    private HashMap<Integer, DbFile> id2file;
+    //建立表name到表id的映射
+    private HashMap<String, Integer> name2id;
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
         // some code goes here
+        id2pkey = new HashMap<Integer, String>();
+        id2name = new HashMap<Integer, String>();
+        id2file = new HashMap<Integer, DbFile>();
+        name2id = new HashMap<String, Integer>();
     }
 
     /**
@@ -35,6 +48,17 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+        if (name == null || pkeyField == null){
+            throw new IllegalArgumentException();
+        }
+        int tableid = file.getId();
+        if(name2id.containsKey(name)){
+            throw new UnsupportedOperationException("不支持添加相同名字的table");
+        }
+        id2file.put(tableid, file);
+        id2name.put(tableid, name);
+        id2pkey.put(tableid, pkeyField);
+        name2id.put(name, tableid);
     }
 
     public void addTable(DbFile file, String name) {
@@ -47,6 +71,11 @@ public class Catalog {
      * contents are stored in the specified DbFile.
      * @param file the contents of the table to add;  file.getId() is the identfier of
      *    this file/tupledesc param for the calls getTupleDesc and getFile
+     *将新表添加到目录中。
+     *此表具有使用指定的TupleDesc及其格式化的元组
+     *内容存储在指定的DbFile中。
+     * @param file 要添加的表的内容; file.getId（）是其标识符
+     *此文件/ tupledesc参数用于调用getTupleDesc和getFile
      */
     public void addTable(DbFile file) {
         addTable(file, (UUID.randomUUID()).toString());
@@ -54,22 +83,30 @@ public class Catalog {
 
     /**
      * Return the id of the table with a specified name,
+     * 返回具有指定名称的表的id，
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        if(name == null || !name2id.containsKey(name)){
+            throw new NoSuchElementException();
+        }
+        return name2id.get(name);
     }
 
     /**
      * Returns the tuple descriptor (schema) of the specified table
+     * 返回指定表的元组描述符（模式）
      * @param tableid The id of the table, as specified by the DbFile.getId()
      *     function passed to addTable
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        if (!isIdValid(tableid, id2file)){
+            throw new NoSuchElementException();
+        }
+        return id2file.get(tableid).getTupleDesc();
     }
 
     /**
@@ -80,31 +117,51 @@ public class Catalog {
      */
     public DbFile getDbFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        if (!isIdValid(tableid, id2file)){
+            throw new NoSuchElementException();
+        }
+        return id2file.get(tableid);
     }
 
     public String getPrimaryKey(int tableid) {
         // some code goes here
-        return null;
+        if (isIdValid(tableid, id2file)){
+            throw new NoSuchElementException();
+        }
+        return id2pkey.get(tableid);
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return id2name.keySet().iterator();
     }
 
     public String getTableName(int id) {
         // some code goes here
-        return null;
+        if (!isIdValid(id, id2name)){
+            throw new NoSuchElementException();
+        }
+        return id2name.get(id);
     }
-    
+
+    /**键值是否存在*/
+    private boolean isIdValid(int id, HashMap<?, ?> map) {
+        return map.containsKey(id);
+    }
+
+
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+        id2name.clear();
+        id2pkey.clear();
+        id2file.clear();
+        name2id.clear();
     }
     
     /**
      * Reads the schema from a file and creates the appropriate tables in the database.
+     * 从文件中读取模式，并在数据库中创建相应的表。
      * @param catalogFile
      */
     public void loadSchema(String catalogFile) {
