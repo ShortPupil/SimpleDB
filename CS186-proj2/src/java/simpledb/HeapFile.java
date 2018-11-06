@@ -88,7 +88,8 @@ public class HeapFile implements DbFile {
         Page page = null;
         byte [] data = new byte[BufferPool.PAGE_SIZE];
 
-        try (RandomAccessFile raf = new RandomAccessFile(getFile(), "r")){
+        try {
+            RandomAccessFile raf = new RandomAccessFile(getFile(), "r");
             //page在HeapFile的偏移量
             int pos = pid.pageNumber() * BufferPool.PAGE_SIZE;
             raf.seek(pos);

@@ -35,7 +35,7 @@ public class BufferPool {
     public BufferPool(int numPages) {
         // some code goes here
         PAGES_NUM = numPages;
-        pid2pages = new HashMap<>(numPages);
+        pid2pages = new HashMap<PageId, Page>(numPages);
     }
 
     /**

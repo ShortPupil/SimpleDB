@@ -9,6 +9,14 @@ public class Join extends Operator {
 
     private static final long serialVersionUID = 1L;
 
+    private JoinPredicate joinPredicate;
+    private DbIterator child1;
+    private DbIterator child2;
+    private TupleDesc td;
+    private TupleIterator joinResults;
+
+    // 131072是MySql中BlockNestedLoopJoin算法的默认缓冲区大小（以字节为单位）
+    private int blockMemory = 131072*5;
     /**
      * Constructor. Accepts to children to join and the predicate to join them
      * on
@@ -19,11 +27,15 @@ public class Join extends Operator {
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
         // some code goes here
+        this.joinPredicate = p;
+        this.child1 = child1;
+        this.child2 = child2;
+        td = TupleDesc.merge(child1.getTupleDesc(), child2.getTupleDesc());
     }
 
     public JoinPredicate getJoinPredicate() {
         // some code goes here
-        return null;
+        return joinPredicate;
     }
 
     /**
@@ -32,7 +44,7 @@ public class Join extends Operator {
      */
     public String getJoinField1Name() {
         // some code goes here
-        return null;
+        return child1.getTupleDesc().getFieldName(joinPredicate.getField1());
     }
 
     /**
@@ -41,7 +53,7 @@ public class Join extends Operator {
      */
     public String getJoinField2Name() {
         // some code goes here
-        return null;
+        return child2.getTupleDesc().getFieldName(joinPredicate.getField2());
     }
 
     /**
@@ -50,20 +62,35 @@ public class Join extends Operator {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return td;
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         // some code goes here
+        super.open();
+        child1.open();
+        child2.open();
+
+        // 计算连接结果
+        joinResults = blockNestedLoopJoin();
+
+        joinResults.open();
     }
 
     public void close() {
         // some code goes here
+        super.close();
+        child1.close();
+        child2.close();
+        joinResults.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
+        child1.rewind();
+        child2.rewind();
+        joinResults.rewind();
     }
 
     /**
@@ -86,18 +113,153 @@ public class Join extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
+        if(joinResults.hasNext()){
+            return joinResults.next();
+        }
         return null;
     }
 
     @Override
     public DbIterator[] getChildren() {
         // some code goes here
-        return null;
+        return new DbIterator[]{this.child1, this.child2};
     }
 
     @Override
     public void setChildren(DbIterator[] children) {
         // some code goes here
+        this.child1 = children[0];
+        this.child2 = children[1];
+    }
+
+    /**
+     * 基于算法的多种表连接操作
+     * NLJ算法:NestedLoopJoin
+     * BNL算法:BlockNestedLoopJoin
+     * \DoubleBlockNestedJoin
+     *
+     * */
+
+    /**左联*/
+    private Tuple mergeTwoTuples(int length1, Tuple left, Tuple right){
+        Tuple result = new Tuple(td);
+        for (int i=0 ; i<length1 ; i++){
+            result.setField(i, left.getField(i));
+        }
+        for (int i=0 ; i<right.getTupleDesc().numFields() ; i++){
+            result.setField(i, right.getField(i));
+        }
+        return result;
+    }
+    /**
+     * NLJ算法:NestedLoopJoin
+     * 伪码
+     * for each row in t1 matching range {
+     *    for each row in t2 matching reference key {
+     *       for each row in t3 {
+     *        if row satisfies join conditions,
+     *        send to clie
+     *      }
+     *    }
+     *  }
+     * */
+    private TupleIterator NestedLoopJoin() throws DbException, TransactionAbortedException {
+        LinkedList<Tuple> tuples = new LinkedList<Tuple>();
+        int length1 = child1.getTupleDesc().numFields();
+        child1.rewind();
+        while (child1.hasNext()) {
+            Tuple left = child1.next();
+            child2.rewind();
+            while (child2.hasNext()) {
+                Tuple right = child2.next();
+                if (joinPredicate.filter(left, right)) {
+                    Tuple result = mergeTwoTuples(length1, left, right);
+                    tuples.add(result);
+                }
+            }
+        }
+
+        return new TupleIterator(getTupleDesc(), tuples);
+    }
+
+    /**
+     * BNL算法：将外层循环的行/结果集存入join buffer，内存循环的每一行数据与整个buffer中的记录做比较，可以减少内层循环的扫描次数
+     * 伪码
+     * for each row in t1 matching range {
+     *    for each row in t2 matching reference key {
+     *      store used columns from t1, t2 in join buffer
+     *      if buffer is full {
+     *       for each row in t3 {
+     *          for each t1, t2 combination in join buffer {
+     *           if row satisfies join conditions,
+     *           send to client
+     *         }
+     *        }
+     *       empty buffer
+     *     }
+     *   }
+     * }
+     *
+     * if buffer is not empty {
+     *    for each row in t3 {
+     *     for each t1, t2 combination in join buffer {
+     *      if row satisfies join conditions,
+     *       send to client
+     *      }
+     *   }
+     * }
+     * */
+    private TupleIterator blockNestedLoopJoin() throws DbException, TransactionAbortedException {
+        LinkedList<Tuple> tuples = new LinkedList<Tuple>();
+
+        int blocksize = blockMemory / child1.getTupleDesc().getSize(); // 块大小
+        int index = 0;
+        Tuple [] cache = new Tuple[blocksize];
+
+        int length1 = child1.getTupleDesc().numFields();
+        child1.rewind();
+        while (child1.hasNext()){
+            Tuple left = child1.next();
+            cache[index++] = left;
+            // TODO:遍历外层表，缓存区满了的情况
+            // 处理缓存数据
+            if(index >= cache.length){
+                child2.rewind();
+                while (child2.hasNext()){
+                    Tuple right = child2.next();
+                    for (Tuple cacheLeft : cache){
+                        if(joinPredicate.filter(cacheLeft, right)){
+                            Tuple result = mergeTwoTuples(length1, cacheLeft, right);
+                            tuples.add(result);
+                        }
+                    }
+                }
+            }
+        }
+        if (index > 0 && index < cache.length) { //仍保存在缓存区的元组
+            child2.rewind();
+            while (child2.hasNext()){
+                Tuple right = child2.next();
+                for (Tuple cacheLeft : cache){
+                    if(cache == null) break;
+                    if(joinPredicate.filter(cacheLeft, right)){
+                        Tuple result = mergeTwoTuples(length1, cacheLeft, right);
+                        tuples.add(result);
+                    }
+                }
+            }
+        }
+        return new TupleIterator(getTupleDesc(), tuples);
+    }
+
+    private TupleIterator doubleBlockNestedLoopJoin() throws DbException, TransactionAbortedException {
+        LinkedList<Tuple> tuples = new LinkedList<Tuple>();
+
+        return new TupleIterator(getTupleDesc(), tuples);
+    }
+
+    private TupleIterator dbnlSortedJoin() throws DbException, TransactionAbortedException {
+        return joinResults;
     }
 
 }
