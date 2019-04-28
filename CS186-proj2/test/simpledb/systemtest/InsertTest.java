@@ -1,17 +1,16 @@
 package simpledb.systemtest;
 
+import org.junit.Test;
+import simpledb.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
-import simpledb.*;
-
 import static org.junit.Assert.*;
-
-import org.junit.Test;
 
 public class InsertTest extends SimpleDbTestBase {
     private void validateInsert(int columns, int sourceRows, int destinationRows)
-            throws DbException, IOException, TransactionAbortedException {
+                throws DbException, IOException, TransactionAbortedException {
         // Create the two tables
         ArrayList<ArrayList<Integer>> sourceTuples = new ArrayList<ArrayList<Integer>>();
         HeapFile source = SystemTestUtil.createRandomHeapFile(
@@ -74,9 +73,7 @@ public class InsertTest extends SimpleDbTestBase {
         validateInsert(1, 1, 1);
     }
 
-    /**
-     * Make test compatible with older version of ant.
-     */
+    /** Make test compatible with older version of ant. */
     public static junit.framework.Test suite() {
         return new junit.framework.JUnit4TestAdapter(InsertTest.class);
     }

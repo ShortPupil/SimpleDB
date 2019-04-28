@@ -1,13 +1,12 @@
 package simpledb.systemtest;
 
+import org.junit.Test;
+import simpledb.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
-import simpledb.*;
-
-import org.junit.Test;
 
 public class AggregateTest extends SimpleDbTestBase {
     public void validateAggregate(DbFile table, Aggregator.Op operation, int aggregateColumn, int groupColumn, ArrayList<ArrayList<Integer>> expectedResult)
@@ -73,7 +72,6 @@ public class AggregateTest extends SimpleDbTestBase {
     private final static int ROWS = 1024;
     private final static int MAX_VALUE = 64;
     private final static int COLUMNS = 3;
-
     private void doAggregate(Aggregator.Op operation, int groupColumn)
             throws IOException, DbException, TransactionAbortedException {
         // Create the table
@@ -120,9 +118,7 @@ public class AggregateTest extends SimpleDbTestBase {
         doAggregate(Aggregator.Op.AVG, Aggregator.NO_GROUPING);
     }
 
-    /**
-     * Make test compatible with older version of ant.
-     */
+    /** Make test compatible with older version of ant. */
     public static junit.framework.Test suite() {
         return new junit.framework.JUnit4TestAdapter(AggregateTest.class);
     }

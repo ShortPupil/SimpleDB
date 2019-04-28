@@ -1,14 +1,12 @@
 package simpledb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
 import junit.framework.JUnit4TestAdapter;
-
 import org.junit.Before;
 import org.junit.Test;
-
 import simpledb.systemtest.SimpleDbTestBase;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class RecordIdTest extends SimpleDbTestBase {
 
@@ -52,12 +50,12 @@ public class RecordIdTest extends SimpleDbTestBase {
      */
     @Test
     public void equals() {
-        assertEquals(hrid, hrid2);
-        assertEquals(hrid2, hrid);
-        assertFalse(hrid.equals(hrid3));
-        assertFalse(hrid3.equals(hrid));
-        assertFalse(hrid2.equals(hrid4));
-        assertFalse(hrid4.equals(hrid2));
+    	assertEquals(hrid, hrid2);
+    	assertEquals(hrid2, hrid);
+    	assertFalse(hrid.equals(hrid3));
+    	assertFalse(hrid3.equals(hrid));
+    	assertFalse(hrid2.equals(hrid4));
+    	assertFalse(hrid4.equals(hrid2));
     }
 
     /**
@@ -65,7 +63,7 @@ public class RecordIdTest extends SimpleDbTestBase {
      */
     @Test
     public void hCode() {
-        assertEquals(hrid.hashCode(), hrid2.hashCode());
+    	assertEquals(hrid.hashCode(), hrid2.hashCode());
     }
 
     /**

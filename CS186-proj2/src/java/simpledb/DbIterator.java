@@ -42,7 +42,7 @@ public interface DbIterator extends Serializable{
   public void rewind() throws DbException, TransactionAbortedException;
 
   /**
-   * Returns the TupleDesc associated with this DbIterator. 
+   * Returns the TupleDesc associated with this DbIterator.
    * @return the TupleDesc associated with this DbIterator.
    */
   public TupleDesc getTupleDesc();

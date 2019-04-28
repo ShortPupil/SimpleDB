@@ -1,14 +1,14 @@
 package simpledb.systemtest;
 
-import static org.junit.Assert.*;
+import junit.framework.Assert;
+import org.junit.Test;
+import simpledb.*;
 
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.junit.Test;
-
-import junit.framework.Assert;
-import simpledb.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Creates a heap file with 1024*500 tuples with two integer fields each.  Clears the buffer pool,
@@ -23,7 +23,7 @@ public class EvictionTest extends SimpleDbTestBase {
     @Test
     public void testHeapFileScanWithManyPages() throws IOException, DbException, TransactionAbortedException {
         System.out.println("EvictionTest creating large table");
-        HeapFile f = SystemTestUtil.createRandomHeapFile(2, 1024 * 500, null, null);
+        HeapFile f = SystemTestUtil.createRandomHeapFile(2, 1024*500, null, null);
         System.out.println("EvictionTest scanning large table");
         Database.resetBufferPool(BUFFER_PAGES);
         long beginMem = SystemTestUtil.getMemoryFootprint();
@@ -34,7 +34,7 @@ public class EvictionTest extends SimpleDbTestBase {
         }
         System.out.println("EvictionTest scan complete, testing memory usage of scan");
         long endMem = SystemTestUtil.getMemoryFootprint();
-        long memDiff = (endMem - beginMem) / (1 << 20);
+        long memDiff = (endMem - beginMem) / (1<<20);
         if (memDiff > MEMORY_LIMIT_IN_MB) {
             Assert.fail("Did not evict enough pages.  Scan took " + memDiff + " MB of RAM, when limit was " + MEMORY_LIMIT_IN_MB);
         }
@@ -54,7 +54,7 @@ public class EvictionTest extends SimpleDbTestBase {
         insert.open();
         Tuple result = insert.next();
         assertEquals(SystemTestUtil.SINGLE_INT_DESCRIPTOR, result.getTupleDesc());
-        assertEquals(1, ((IntField) result.getField(0)).getValue());
+        assertEquals(1, ((IntField)result.getField(0)).getValue());
         assertFalse(insert.hasNext());
         insert.close();
     }
@@ -66,8 +66,8 @@ public class EvictionTest extends SimpleDbTestBase {
         ss.open();
         while (ss.hasNext()) {
             Tuple v = ss.next();
-            int v0 = ((IntField) v.getField(0)).getValue();
-            int v1 = ((IntField) v.getField(1)).getValue();
+            int v0 = ((IntField)v.getField(0)).getValue();
+            int v1 = ((IntField)v.getField(1)).getValue();
             if (v0 == -42 && v1 == -43) {
                 assertFalse(found);
                 found = true;
@@ -77,9 +77,7 @@ public class EvictionTest extends SimpleDbTestBase {
         return found;
     }
 
-    /**
-     * Make test compatible with older version of ant.
-     */
+    /** Make test compatible with older version of ant. */
     public static junit.framework.Test suite() {
         return new junit.framework.JUnit4TestAdapter(EvictionTest.class);
     }

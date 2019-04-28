@@ -1,50 +1,46 @@
 package simpledb;
 
+import junit.framework.JUnit4TestAdapter;
+import org.junit.Before;
+import org.junit.Test;
 import simpledb.TestUtil.SkeletonFile;
 import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import junit.framework.JUnit4TestAdapter;
+import static org.junit.Assert.*;
 
 public class HeapPageReadTest extends SimpleDbTestBase {
     private HeapPageId pid;
 
-    public static final int[][] EXAMPLE_VALUES = new int[][]{
-            {31933, 862},
-            {29402, 56883},
-            {1468, 5825},
-            {17876, 52278},
-            {6350, 36090},
-            {34784, 43771},
-            {28617, 56874},
-            {19209, 23253},
-            {56462, 24979},
-            {51440, 56685},
-            {3596, 62307},
-            {45569, 2719},
-            {22064, 43575},
-            {42812, 44947},
-            {22189, 19724},
-            {33549, 36554},
-            {9086, 53184},
-            {42878, 33394},
-            {62778, 21122},
-            {17197, 16388}
+    public static final int[][] EXAMPLE_VALUES = new int[][] {
+        { 31933, 862 },
+        { 29402, 56883 },
+        { 1468, 5825 },
+        { 17876, 52278 },
+        { 6350, 36090 },
+        { 34784, 43771 },
+        { 28617, 56874 },
+        { 19209, 23253 },
+        { 56462, 24979 },
+        { 51440, 56685 },
+        { 3596, 62307 },
+        { 45569, 2719 },
+        { 22064, 43575 },
+        { 42812, 44947 },
+        { 22189, 19724 },
+        { 33549, 36554 },
+        { 9086, 53184 },
+        { 42878, 33394 },
+        { 62778, 21122 },
+        { 17197, 16388 }
     };
 
     public static final byte[] EXAMPLE_DATA;
-
     static {
         // Build the input table
         ArrayList<ArrayList<Integer>> table = new ArrayList<ArrayList<Integer>>();

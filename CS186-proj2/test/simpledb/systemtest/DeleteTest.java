@@ -1,11 +1,11 @@
 package simpledb.systemtest;
 
-import static org.junit.Assert.*;
+import simpledb.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
-import simpledb.*;
+import static org.junit.Assert.*;
 
 public class DeleteTest extends FilterBase {
     ArrayList<ArrayList<Integer>> expectedTuples = null;
@@ -52,9 +52,7 @@ public class DeleteTest extends FilterBase {
         SystemTestUtil.matchTuples(table, expectedTuples);
     }
 
-    /**
-     * Make test compatible with older version of ant.
-     */
+    /** Make test compatible with older version of ant. */
     public static junit.framework.Test suite() {
         return new junit.framework.JUnit4TestAdapter(DeleteTest.class);
     }

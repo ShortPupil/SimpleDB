@@ -30,6 +30,9 @@ public class Join extends Operator {
         this.joinPredicate = p;
         this.child1 = child1;
         this.child2 = child2;
+        int length1 = child1.getTupleDesc().numFields();
+        int length2 = child2.getTupleDesc().numFields();
+        Type[] types = new Type[length1 + length2];
         td = TupleDesc.merge(child1.getTupleDesc(), child2.getTupleDesc());
     }
 
@@ -44,7 +47,7 @@ public class Join extends Operator {
      */
     public String getJoinField1Name() {
         // some code goes here
-        return child1.getTupleDesc().getFieldName(joinPredicate.getField1());
+        return child1.getTupleDesc().getFieldName(joinPredicate.getIndex1());
     }
 
     /**
@@ -53,7 +56,7 @@ public class Join extends Operator {
      */
     public String getJoinField2Name() {
         // some code goes here
-        return child2.getTupleDesc().getFieldName(joinPredicate.getField2());
+        return child2.getTupleDesc().getFieldName(joinPredicate.getIndex2());
     }
 
     /**
@@ -74,6 +77,8 @@ public class Join extends Operator {
 
         // 计算连接结果
         joinResults = blockNestedLoopJoin();
+        //joinResults = NestedLoopJoin();
+        //joinResults = doubleBlockNestedLoopJoin();
 
         joinResults.open();
     }
@@ -147,7 +152,7 @@ public class Join extends Operator {
             result.setField(i, left.getField(i));
         }
         for (int i=0 ; i<right.getTupleDesc().numFields() ; i++){
-            result.setField(i, right.getField(i));
+            result.setField(i+length1, right.getField(i));//这里别忘了+length1
         }
         return result;
     }
@@ -209,40 +214,40 @@ public class Join extends Operator {
      *   }
      * }
      * */
+    //TODO: 还不会
     private TupleIterator blockNestedLoopJoin() throws DbException, TransactionAbortedException {
         LinkedList<Tuple> tuples = new LinkedList<Tuple>();
-
-        int blocksize = blockMemory / child1.getTupleDesc().getSize(); // 块大小
+        int blockSize = blockMemory / child1.getTupleDesc().getSize();//131072是MySql中该算法的默认缓冲区大小
+        Tuple[] cacheBlock = new Tuple[blockSize];
         int index = 0;
-        Tuple [] cache = new Tuple[blocksize];
-
         int length1 = child1.getTupleDesc().numFields();
         child1.rewind();
-        while (child1.hasNext()){
+        while (child1.hasNext()) {
             Tuple left = child1.next();
-            cache[index++] = left;
-            // TODO:遍历外层表，缓存区满了的情况
-            // 处理缓存数据
-            if(index >= cache.length){
+            cacheBlock[index++] = left;
+            if (index >= cacheBlock.length) {//如果缓冲区满了，就先处理缓存中的tuple
                 child2.rewind();
-                while (child2.hasNext()){
+                while (child2.hasNext()) {
                     Tuple right = child2.next();
-                    for (Tuple cacheLeft : cache){
-                        if(joinPredicate.filter(cacheLeft, right)){
+                    for (Tuple cacheLeft : cacheBlock) {
+                        if (joinPredicate.filter(cacheLeft, right)) {//如果符合条件就合并来自两个表的tuple作为一条结果
                             Tuple result = mergeTwoTuples(length1, cacheLeft, right);
                             tuples.add(result);
                         }
                     }
                 }
+                Arrays.fill(cacheBlock, null);//清空，给下一次使用
+                index = 0;
             }
         }
-        if (index > 0 && index < cache.length) { //仍保存在缓存区的元组
+        if (index > 0 && index < cacheBlock.length) {//处理缓冲区中剩下的tuple
             child2.rewind();
-            while (child2.hasNext()){
+            while (child2.hasNext()) {
                 Tuple right = child2.next();
-                for (Tuple cacheLeft : cache){
-                    if(cache == null) break;
-                    if(joinPredicate.filter(cacheLeft, right)){
+                for (Tuple cacheLeft : cacheBlock) {
+                    //如果符合条件就合并来自两个表的tuple作为一条结果，加上为null的判断是因为此时cache没有满，最后有null值
+                    if (cacheLeft == null) break;
+                    if (joinPredicate.filter(cacheLeft, right)) {
                         Tuple result = mergeTwoTuples(length1, cacheLeft, right);
                         tuples.add(result);
                     }

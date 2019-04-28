@@ -3,25 +3,25 @@ package simpledb;
 import java.io.*;
 
 /** Database is a class that initializes several static
-    variables used by the database system (the catalog, the buffer pool,
-    and the log files, in particular.)
-    <p>
-    Provides a set of methods that can be used to access these variables
-    from anywhere.
-*/
+ variables used by the database system (the catalog, the buffer pool,
+ and the log files, in particular.)
+ <p>
+ Provides a set of methods that can be used to access these variables
+ from anywhere.
+ */
 
 public class Database {
-	private static Database _instance = new Database();
+    private static Database _instance = new Database();
     private final Catalog _catalog;
-    private BufferPool _bufferpool; 
+    private BufferPool _bufferpool;
 
     private final static String LOGFILENAME = "log";
     private LogFile _logfile;
 
     private Database() {
-    	_catalog = new Catalog();
-    	_bufferpool = new BufferPool(BufferPool.DEFAULT_PAGES);
-    	try {
+        _catalog = new Catalog();
+        _bufferpool = new BufferPool(BufferPool.DEFAULT_PAGES);
+        try {
             _logfile = new LogFile(new File(LOGFILENAME));
         } catch(IOException e) {
             _logfile = null;
@@ -47,8 +47,8 @@ public class Database {
     }
 
     /** Method used for testing -- create a new instance of the
-        buffer pool and return it
-    */
+     buffer pool and return it
+     */
     public static BufferPool resetBufferPool(int pages) {
         _instance._bufferpool = new BufferPool(pages);
         return _instance._bufferpool;
@@ -56,7 +56,7 @@ public class Database {
 
     //reset the database, used for unit tests only.
     public static void reset() {
-    	_instance = new Database();
+        _instance = new Database();
     }
 
 }

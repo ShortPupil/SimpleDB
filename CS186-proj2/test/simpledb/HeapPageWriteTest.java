@@ -1,20 +1,18 @@
 package simpledb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import junit.framework.JUnit4TestAdapter;
+import org.junit.Before;
+import org.junit.Test;
+import simpledb.TestUtil.SkeletonFile;
+import simpledb.systemtest.SimpleDbTestBase;
+import simpledb.systemtest.SystemTestUtil;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import junit.framework.JUnit4TestAdapter;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import simpledb.TestUtil.SkeletonFile;
-import simpledb.systemtest.SimpleDbTestBase;
-import simpledb.systemtest.SystemTestUtil;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class HeapPageWriteTest extends SimpleDbTestBase {
 
@@ -60,11 +58,11 @@ public class HeapPageWriteTest extends SimpleDbTestBase {
         for (int i = 0; i < free; ++i) {
             Tuple addition = Utility.getHeapTuple(i, 2);
             page.insertTuple(addition);
-            assertEquals(free - i - 1, page.getNumEmptySlots());
+            assertEquals(free-i-1, page.getNumEmptySlots());
 
             // loop through the iterator to ensure that the tuple actually exists
             // on the page
-            Iterator<Tuple> it = page.iterator();
+            Iterator<Tuple>it = page.iterator();
             boolean found = false;
             while (it.hasNext()) {
                 Tuple tup = it.next();
@@ -91,8 +89,8 @@ public class HeapPageWriteTest extends SimpleDbTestBase {
     /**
      * Unit test for HeapPage.deleteTuple() with false tuples
      */
-    @Test(expected = DbException.class)
-    public void deleteNonexistentTuple() throws Exception {
+    @Test(expected= DbException.class)
+        public void deleteNonexistentTuple() throws Exception {
         HeapPage page = new HeapPage(pid, HeapPageReadTest.EXAMPLE_DATA);
         page.deleteTuple(Utility.getHeapTuple(2, 2));
     }

@@ -54,11 +54,7 @@ public class TupleDesc implements Serializable {
             }
             if (o instanceof TDItem) {
                 TDItem another = (TDItem) o;
-                //因为fieldName可能为null,所以都为null时视为name相同
-                boolean nameEquals = (fieldName == null && another.fieldName == null)
-                        || fieldName.equals(another.fieldName);
-                boolean typeEquals = fieldType.equals(another.fieldType);
-                return nameEquals && typeEquals;
+                return Objects.equals(fieldName, another.fieldName) && Objects.equals(fieldType, another.fieldType);
             } else return false;
         }
 
@@ -193,7 +189,6 @@ public class TupleDesc implements Serializable {
             throw new NoSuchElementException();
         }
         String fieldName;
-        // TODO: 17-5-22 improve this,不要使用遍历
         for (int i = 0; i < tdAr.length; i++) {
             if ((fieldName = tdAr[i].fieldName) != null && fieldName.equals(name)) {
                 return i;
@@ -280,11 +275,11 @@ public class TupleDesc implements Serializable {
     public String toString() {
         // some code goes here
         StringBuffer result = new StringBuffer();
-        result.append("Fields: ");
+        result.append("< ");
         for (TDItem tdItem : tdAr) {
-            result.append(tdItem.toString() + ", ");
+            result.append(tdItem.toString() + " ");
         }
-        result.append(numFields + " Fields in all");
+        result.append(">");
         return result.toString();
     }
 

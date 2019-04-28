@@ -1,32 +1,26 @@
 package simpledb.systemtest;
 
+import org.junit.Test;
+import simpledb.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
-
-import org.junit.Test;
-
-import simpledb.*;
+import static org.junit.Assert.assertEquals;
 
 public abstract class FilterBase extends SimpleDbTestBase {
     private static final int COLUMNS = 3;
     private static final int ROWS = 1097;
 
-    /**
-     * Should apply the predicate to table. This will be executed in transaction tid.
-     */
+    /** Should apply the predicate to table. This will be executed in transaction tid. */
     protected abstract int applyPredicate(HeapFile table, TransactionId tid, Predicate predicate)
             throws DbException, TransactionAbortedException, IOException;
 
-    /**
-     * Optional hook for validating database state after applyPredicate.
-     */
+    /** Optional hook for validating database state after applyPredicate. */
     protected void validateAfter(HeapFile table)
-            throws DbException, TransactionAbortedException, IOException {
-    }
+            throws DbException, TransactionAbortedException, IOException {}
 
     protected ArrayList<ArrayList<Integer>> createdTuples;
 
@@ -39,7 +33,7 @@ public abstract class FilterBase extends SimpleDbTestBase {
     }
 
     private void validatePredicate(int column, int columnValue, int trueValue, int falseValue,
-                                   Predicate.Op operation) throws IOException, DbException, TransactionAbortedException {
+            Predicate.Op operation) throws IOException, DbException, TransactionAbortedException {
         // Test the true value
         HeapFile f = createTable(column, columnValue);
         Predicate predicate = new Predicate(column, operation, new IntField(trueValue));

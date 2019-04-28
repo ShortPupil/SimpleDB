@@ -1,11 +1,36 @@
 package simpledb;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Knows how to compute some aggregate over a set of StringFields.
  */
 public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
+
+    //该索引值指定了要使用tuple的哪一个列来分组
+    int gbIndex;
+
+    //该索引指定了要使用tuple的哪一个列来聚合
+    int agIndex;
+
+    //聚合前tuple的行描述
+    TupleDesc originalTd;
+
+    //指定了作为分组依据的那一列的值的类型
+    Type gbFieldType;
+
+    //指定使用哪种聚合操作
+    Op aggreOp;
+
+    //group-by value到aggregate value的映射
+    HashMap<Field, Integer> gval2agval;
+
+    //聚合后的td
+    private TupleDesc td;
 
     /**
      * Aggregate constructor
@@ -17,8 +42,17 @@ public class StringAggregator implements Aggregator {
      * @throws IllegalArgumentException if what != COUNT
      */
 
-    public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
+    public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what, TupleDesc td) {
         // some code goes here
+        if (what != Op.COUNT) {
+            throw new UnsupportedOperationException("String类型值只支持count操作,不支持" + aggreOp);
+        }
+        this.gbIndex = gbfield;
+        this.agIndex = afield;
+        this.aggreOp = what;
+        this.gbFieldType = gbfieldtype;
+        gval2agval = new HashMap<Field, Integer>();
+        this.td = td;
     }
 
     /**
@@ -28,6 +62,34 @@ public class StringAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
+        //待聚合值所在的Field
+        Field aggreField;
+        //分组依据的Field
+        Field gbField = null;
+        //新的聚合结果
+        Integer newVal;
+        aggreField = tup.getField(agIndex);
+
+        if (aggreField.getType() != Type.STRING_TYPE) {
+            throw new IllegalArgumentException("该tuple的指定列不是Type.STRING_TYPE类型");
+        }
+        //初始化originalTd，并确保每一次聚合的tuple的td与其相同
+        if (originalTd == null) {
+            originalTd = tup.getTupleDesc();
+        } else if (!originalTd.equals(tup.getTupleDesc())) {
+            throw new IllegalArgumentException("待聚合tuple的tupleDesc与之前不一致");
+        }
+        if (gbIndex != Aggregator.NO_GROUPING) {
+            //如果gbIdex为NO_GROUPING，那么不用给gbField赋值，即为初始值null即可
+            gbField = tup.getField(gbIndex);
+        }
+
+        //开始进行聚合操作
+        if (gval2agval.containsKey(gbField)) {
+            Integer oldVal = gval2agval.get(gbField);
+            newVal = oldVal + 1;
+        } else newVal = 1;
+        gval2agval.put(gbField, newVal);
     }
 
     /**
@@ -40,7 +102,19 @@ public class StringAggregator implements Aggregator {
      */
     public DbIterator iterator() {
         // some code goes here
-        throw new UnsupportedOperationException("please implement me for proj2");
+        ArrayList<Tuple> tuples = new ArrayList<Tuple>();
+        for (Map.Entry<Field, Integer> g2a : gval2agval.entrySet()) {
+            Tuple t = new Tuple(td);//该tuple不必setRecordId，因为RecordId对进行操作后的tuple没有意义
+            //分别处理不分组与有分组的情形
+            if (gbIndex == Aggregator.NO_GROUPING) {
+                t.setField(0, new IntField(g2a.getValue()));
+            } else {
+                t.setField(0, g2a.getKey());
+                t.setField(1, new IntField(g2a.getValue()));
+            }
+            tuples.add(t);
+        }
+        return new TupleIterator(td, tuples);
     }
 
 }
